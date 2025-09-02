@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import AuthPage from "./pages/auth/auth.page";
@@ -9,6 +9,7 @@ import { useAppContext } from "./context/appContext";
 
 
 const App = () => {
+  const [backendStatus, setBackendStatus] = useState(null);
   const {authenticate, loadingProgress, ready} = useAppContext();
   const loginUser = () => {
     localStorage.setItem("user", '{"loggedIn": true}');
@@ -33,6 +34,13 @@ const App = () => {
   }
 
   useEffect(() => {
+      fetch("/api/status")
+      .then(res => res.json())
+      .then(data => setBackendStatus(data.status))
+      .catch(() => setBackendStatus("offline"));
+  }, []);
+
+  useEffect(() => {
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('ready', onReady);
@@ -49,6 +57,12 @@ const App = () => {
   }, []);
 
   return (
+    <>
+    {/*/backendStatus && (
+        <//div style={{position: "fixed", top: 0, left: 0, background: "#eee", padding: 8, zIndex: 9999}}>
+          Backend status: {backendStatus}
+        </div>
+      )*/}
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<ChatsPage />} />
@@ -57,6 +71,7 @@ const App = () => {
         <Route path="*" element={<ErrorPage />} />
       </Routes>
     </BrowserRouter>
+    </>
   );
 };
 
