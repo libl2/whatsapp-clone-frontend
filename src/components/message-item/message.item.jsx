@@ -41,13 +41,32 @@ const MessageItem = ({ msg, chat }) => {
         <div className="inner">
           <div className="sender">{msg.from}</div>
           <div className="message">
-            <div className="text">{msg.body}</div>
             {msg.hasMedia && (
               <div className="media">
                 {msg.type === "image" && mediaUrl && <img src={mediaUrl} alt="Media" />}
                 {msg.type === "video" && mediaUrl && <video src={mediaUrl} controls />}
+                {msg.type === "audio" && mediaUrl && (
+                  <audio controls>
+                    <source src={mediaUrl} />
+                    הדפדפן שלך לא תומך בניגון אודיו.
+                  </audio>
+                )}
+                {msg.type === "sticker" && mediaUrl && <img src={mediaUrl} alt="Sticker" style={{ width: 120, height: 120 }} />}
+                {msg.type === "document" && mediaUrl && msg.mimetype === "application/pdf" && (
+                  <object data={mediaUrl} type="application/pdf" width="100%" height="400px">
+                    <a href={mediaUrl} target="_blank" rel="noopener noreferrer">צפה ב-PDF</a>
+                  </object>
+                )}
+                {msg.type === "document" && mediaUrl && msg.mimetype !== "application/pdf" && (
+                  <a href={mediaUrl} target="_blank" rel="noopener noreferrer">{msg.filename} הורד קובץ</a>
+                )}
+                {/* קובץ לא מזוהה */}
+                {mediaUrl && ["image", "video", "audio", "sticker", "document"].indexOf(msg.type) === -1 && (
+                  <a href={mediaUrl} target="_blank" rel="noopener noreferrer">הורד/צפה בקובץ</a>
+                )}
               </div>
             )}
+            <div className="text">{msg.body}</div>
             <div className="time">{time}</div>
           </div>
         </div>

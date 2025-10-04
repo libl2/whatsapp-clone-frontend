@@ -38,18 +38,36 @@ const Wrapper = styled.div`
       }
 
       .message {
-        background-color: var(--incoming-background);
-        box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13);
-        border-radius: 7.5px;
-        border-top-left-radius: 0 !important;
-        padding-left: var(--bubble-padding-start);
-        padding-right: var(--bubble-padding-end);
-        padding-bottom: 8px;
-        padding-top: 6px;
-        box-sizing: border-box;
-        display: flex;
-        align-items: end;
+  background-color: var(--incoming-background);
+  box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13);
+  border-radius: 7.5px;
+  border-top-left-radius: 0 !important;
+  padding-left: var(--bubble-padding-start);
+  padding-right: var(--bubble-padding-end);
+  padding-bottom: 9px;
+  padding-top: 7.5px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 
+        .media {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+        .media img,
+        .media video {
+          max-width: 320px;
+          width: 100%;
+          max-height: 400px;
+          border-radius: 8px;
+          object-fit: cover;
+          margin-bottom: 6px;
+          background: #eee;
+        }
         .text {
           display: flex;
           position: relative;
