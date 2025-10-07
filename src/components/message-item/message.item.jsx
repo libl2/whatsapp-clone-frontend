@@ -2,6 +2,7 @@ import Wrapper from "./message.item.style";
 import TailinIcon from "../icons/tailin.icon";
 import moment from "moment";
 import { socket } from "../../services/socket.service";
+import ReactMarkdown from "react-markdown";
 import { useState, useEffect } from "react";
 
 const MessageItem = ({ msg, chat }) => {
@@ -28,8 +29,8 @@ const MessageItem = ({ msg, chat }) => {
   }, [msg.id._serialized]);
   
   if (msg.hasMedia) {
-    console.log('Media URL:', msg.mediaUrl);
-    console.log('Message type:', msg.type);
+    //console.log('Media URL:', msg.mediaUrl);
+    //console.log('Message type:', msg.type);
   }
 
   return (
@@ -43,8 +44,18 @@ const MessageItem = ({ msg, chat }) => {
           <div className="message">
             {msg.hasMedia && (
               <div className="media">
+                {!mediaUrl && (
+                  <div className="media-placeholder">
+                    טוען מדיה...
+                  </div>
+                )}
                 {msg.type === "image" && mediaUrl && <img src={mediaUrl} alt="Media" />}
-                {msg.type === "video" && mediaUrl && <video src={mediaUrl} controls />}
+                {msg.type === "video" && mediaUrl && (
+                  <video controls preload="metadata" playsInline>
+                    <source src={mediaUrl} type="video/mp4" />
+                    הדפדפן שלך לא תומך בניגון וידאו.
+                  </video>
+                )}
                 {msg.type === "audio" && mediaUrl && (
                   <audio controls>
                     <source src={mediaUrl} />
@@ -66,7 +77,9 @@ const MessageItem = ({ msg, chat }) => {
                 )}
               </div>
             )}
-            <div className="text">{msg.body}</div>
+            <div className="text">
+              <ReactMarkdown>{msg.body}</ReactMarkdown>
+            </div>
             <div className="time">{time}</div>
           </div>
         </div>

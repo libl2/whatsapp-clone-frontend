@@ -15,6 +15,19 @@ const Wrapper = styled.div`
     flex-direction: column;
     border-top-left-radius: 0 !important;
 
+    .media-placeholder {
+    width: 220px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e5e5e5;
+    border-radius: 8px;
+    color: #888;
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
     .tail-in {
       left: -8px;
       color: var(--incoming-background);
@@ -38,42 +51,49 @@ const Wrapper = styled.div`
       }
 
       .message {
-  background-color: var(--incoming-background);
-  box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13);
-  border-radius: 7.5px;
-  border-top-left-radius: 0 !important;
-  padding-left: var(--bubble-padding-start);
-  padding-right: var(--bubble-padding-end);
-  padding-bottom: 9px;
-  padding-top: 7.5px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+        background-color: var(--incoming-background);
+        box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13);
+        border-radius: 7.5px;
+        border-top-left-radius: 0 !important;
+        padding-left: var(--bubble-padding-start);
+        padding-right: var(--bubble-padding-end);
+        padding-bottom: 9px;
+        padding-top: 7.5px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
 
         .media {
           width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
           margin-bottom: 8px;
         }
-        .media img,
-        .media video {
+        .media img {
+          display: block;
           max-width: 320px;
           width: 100%;
-          max-height: 400px;
+          max-height: 320px;
           border-radius: 8px;
           object-fit: cover;
           margin-bottom: 6px;
           background: #eee;
         }
+        .media video {
+          display: block;
+          max-width: 320px;
+          width: 100%;
+          height: auto;
+          aspect-ratio: 16/9;
+          border-radius: 8px;
+          margin-bottom: 6px;
+          background: #000;
+        }
         .text {
-          display: flex;
+          display: block;
           position: relative;
           overflow-wrap: break-word;
           white-space: pre-wrap;
-          font-size: 14px;
+          font-size: 15px;
           line-height: 1.5;
         }
 
