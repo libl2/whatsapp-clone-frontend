@@ -51,17 +51,12 @@ const MessageItem = ({ msg, chat }) => {
                 )}
                 {msg.type === "image" && mediaUrl && <img src={mediaUrl} alt="Media" />}
                 {msg.type === "video" && mediaUrl && (
-                  <video controls preload="metadata" playsInline>
-                    <source src={mediaUrl} type="video/mp4" />
+                  <video controls >
+                    <source src={mediaUrl} />
                     הדפדפן שלך לא תומך בניגון וידאו.
                   </video>
                 )}
-                {msg.type === "audio" && mediaUrl && (
-                  <audio controls>
-                    <source src={mediaUrl} />
-                    הדפדפן שלך לא תומך בניגון אודיו.
-                  </audio>
-                )}
+                {msg.type === "audio" && mediaUrl && (<audio controls> <source src={mediaUrl} />הדפדפן שלך לא תומך בניגון אודיו.</audio>)}
                 {msg.type === "sticker" && mediaUrl && <img src={mediaUrl} alt="Sticker" style={{ width: 120, height: 120 }} />}
                 {msg.type === "document" && mediaUrl && msg.mimetype === "application/pdf" && (
                   <object data={mediaUrl} type="application/pdf" width="100%" height="400px">

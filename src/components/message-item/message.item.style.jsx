@@ -47,7 +47,7 @@ const Wrapper = styled.div`
 
       .sender {
         display: flex;
-        display: none;
+        
       }
 
       .message {
