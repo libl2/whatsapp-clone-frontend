@@ -5,11 +5,11 @@ const Wrapper = styled.div`
 
   .message-conatainer {
     margin-bottom: 0;
-    border-radius: 7.5px;
+    border-radius: 8px;
     position: relative;
     flex: none;
-    font-size: 14.2px;
-    line-height: 19px;
+    font-size: 15px;
+    line-height: 20px;
     color: var(--message-primary);
     display: flex;
     flex-direction: column;
@@ -39,26 +39,28 @@ const Wrapper = styled.div`
       height: 13px;
     }
 
-    .inner {
-      max-width: 65%;
+  .inner {
+  max-width: 72%;
       position: relative;
       z-index: 200;
       display: flex;
 
       .sender {
         display: flex;
-        
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 4px;
       }
 
-      .message {
+        .message {
         background-color: var(--incoming-background);
-        box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13);
-        border-radius: 7.5px;
+        box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.08);
+        border-radius: 8px;
         border-top-left-radius: 0 !important;
-        padding-left: var(--bubble-padding-start);
-        padding-right: var(--bubble-padding-end);
-        padding-bottom: 9px;
-        padding-top: 7.5px;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-bottom: 8px;
+        padding-top: 8px;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -70,22 +72,22 @@ const Wrapper = styled.div`
         }
         .media img {
           display: block;
-          max-width: 320px;
+          max-width: 420px;
           width: 100%;
-          max-height: 320px;
-          border-radius: 8px;
+          max-height: 420px;
+          border-radius: 12px;
           object-fit: cover;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
           background: #eee;
         }
         .media video {
           display: block;
-          max-width: 320px;
+          max-width: 420px;
           width: 100%;
           height: auto;
           aspect-ratio: 16/9;
-          border-radius: 8px;
-          margin-bottom: 6px;
+          border-radius: 12px;
+          margin-bottom: 8px;
           background: #000;
         }
         .text {
@@ -93,14 +95,32 @@ const Wrapper = styled.div`
           position: relative;
           overflow-wrap: break-word;
           white-space: pre-wrap;
-          font-size: 15px;
-          line-height: 1.5;
+          font-size: 16px;
+          line-height: 1.4;
+          font-family: sans-serif, Helvetica;
+        }
+
+        .meta {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          margin-top: 6px;
         }
 
         .time {
-          display: flex;
+          display: inline-flex;
           margin-inline-start: 10px;
-          font-size: 10px;
+          font-size: 11px;
+          opacity: 0.85;
+          color: rgba(255,255,255,0.9);
+        }
+
+        .ticks {
+          display: inline-flex;
+          margin-inline-start: 6px;
+          width: 18px;
+          height: 18px;
+          color: rgba(255,255,255,0.9);
         }
       }
     }
@@ -118,6 +138,8 @@ const Wrapper = styled.div`
         border-top-right-radius: 0 !important;
         background-color: var(--outgoing-background) !important;
         box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13) !important;
+        .time { color: rgba(255,255,255,0.9); }
+        .ticks { color: rgba(255,255,255,0.9); }
       }
     }
   }

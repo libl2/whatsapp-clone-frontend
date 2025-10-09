@@ -158,7 +158,7 @@ const Wrapper = styled.div`
           display: flex;
           flex-grow: 1;
           textarea {
-            padding: 11px 12px;
+            padding: 10px 12px;
             margin: 5px 8px;
             background-color: var(--compose-input-background);
             border: 1px solid var(--compose-input-border);
@@ -172,6 +172,16 @@ const Wrapper = styled.div`
         }
         .send-action {
           svg {
+          }
+          &.has-text {
+            background-color: var(--outgoing-background);
+            color: #fff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
           }
         }
       }

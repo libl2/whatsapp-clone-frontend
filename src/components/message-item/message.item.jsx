@@ -1,5 +1,6 @@
 import Wrapper from "./message.item.style";
 import TailinIcon from "../icons/tailin.icon";
+import TicksIcon from "../icons/ticks.icon";
 import moment from "moment";
 import { socket } from "../../services/socket.service";
 import ReactMarkdown from "react-markdown";
@@ -40,8 +41,8 @@ const MessageItem = ({ msg, chat }) => {
           <TailinIcon me={msg.fromMe} />
         </span>
         <div className="inner">
-          <div className="sender">{msg.from}</div>
           <div className="message">
+            <div className="sender">{msg.from}</div>
             {msg.hasMedia && (
               <div className="media">
                 {!mediaUrl && (
@@ -75,7 +76,14 @@ const MessageItem = ({ msg, chat }) => {
             <div className="text">
               <ReactMarkdown>{msg.body}</ReactMarkdown>
             </div>
-            <div className="time">{time}</div>
+            <div className="meta">
+              <div className="time">{time}</div>
+              {msg.fromMe && (
+                <div className="ticks" aria-hidden>
+                  <TicksIcon />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

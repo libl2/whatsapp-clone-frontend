@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Wrapper from "./chat.box.style";
 import MicIcon from "../icons/mic.icon";
 import EmojiIcon from "../icons/emoji.icon";
@@ -34,6 +34,8 @@ const initialState = {
 const ChatBox = () => {
   const { chat, dispatch, showChatSearch } = useAppContext();
   const [state, setState] = useState(initialState);
+  const [inputText, setInputText] = useState("");
+  const textareaRef = useRef(null);
   const date = moment(chat.date).format("DD/MM/YYYY");
 
   const hidePlate = () => {
@@ -68,6 +70,33 @@ const ChatBox = () => {
       });
     });
   }, [chat]);
+
+  const handleInputChange = (e) => {
+    const el = e.target;
+    setInputText(el.value);
+    // auto-resize
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  const handleSend = () => {
+    if (!inputText.trim()) {
+      // placeholder for voice recording action
+      return;
+    }
+
+    // temporary send - integrate with real send API/event
+    console.log("send message:", inputText);
+    setInputText("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
     <Wrapper className="chatbox-container">
@@ -145,16 +174,21 @@ const ChatBox = () => {
           <div className="send-wrapper">
             <div className="input-wrapper">
               <textarea
+                ref={textareaRef}
                 disabled={state.loading}
                 rows="1"
                 placeholder="Type a message"
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
               ></textarea>
             </div>
             <button
               disabled={state.loading}
-              className="send-action action-holder"
+              onClick={handleSend}
+              className={`send-action action-holder ${inputText.trim() ? "has-text" : ""}`}
             >
-              <MicIcon />
+              {inputText.trim() ? <SendIcon /> : <MicIcon />}
             </button>
           </div>
         </div>
