@@ -35,4 +35,9 @@ const fetchAvatarUrl = (id) => {
   return axios.get(url);
 };
 
-export { fetchQR, fetchChats, fetchMessages, searchMessages, fetchAvatarUrl };
+const fetchStatuses = () => {
+  const url = `${apiPrefix}/statuses`;
+  return axios.get(url);
+};
+
+export { fetchQR, fetchChats, fetchMessages, searchMessages, fetchAvatarUrl, fetchStatuses };

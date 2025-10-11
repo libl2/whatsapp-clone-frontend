@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import StatusViewer from "../status-viewer/status.viewer";
 import { useAppContext } from "../../context/appContext";
 import CommunitiesIcon from "../../components/icons/communities.icon";
 import StatusIcon from "../../components/icons/status.icon";
@@ -30,6 +31,7 @@ const initialState = {
 const ChatSidebar = () => {
   const { openChat, dispatch, chats, chat: current } = useAppContext();
   const [state, setState] = useState(initialState);
+  const [showStatus, setShowStatus] = useState(false);
 
   const toggleFilterUnRead = () => {
     const unread = !state.unreadOnly;
@@ -64,68 +66,69 @@ const ChatSidebar = () => {
   };
 
   return (
-    <>
-      <header>
-        <div className="avatar">
-          <img src={Me} alt="avatar" />
-        </div>
-        <div className="actions">
-          <button>
-            <CommunitiesIcon />
-          </button>
-          <button>
-            <StatusIcon />
-          </button>
-          <button>
-            <ChatIcon />
-          </button>
-          <button onClick={setMoreMenuAnchor}>
-            <MoreIcon />
-          </button>
-        </div>
-        <HeaderMenu
-          anchorEl={state.moreMenuAnchor}
-          release={releaseMoreMenuAnchor}
-        />
-      </header>
-      <div className="inner-container">
-        <div className="search-container">
-          <Filter placeholder="Search or start a new chat" />
-          <button
-            onClick={toggleFilterUnRead}
-            className={`filter-btn ${state.unreadOnly ? "active" : ""}`}
-          >
-            <PyramidIcon />
-          </button>
-        </div>
-
-        <div
-          className={`chats-container ${
-            state.notification.show ? "has-notification" : ""
-          }`}
-        >
-          {state.notification.show && (
-            <ChatNotification
-              onReact={reactNotification}
-              onClose={closeNotification}
-              notification={state.notification}
-            />
-          )}
-          {state.unreadOnly && (
-            <div className="filtered-note">FILTERED BY UNREAD</div>
-          )}
-          {(state.unreadOnly ? state.filtered : chats).map((chat) => (
-            <ChatItem
-              current={chat === current}
-              key={chat.id.user}
-              chat={chat}
-              onPick={() => pickChat(chat)}
-            />
-          ))}
-        </div>
+  <>
+    <header>
+      {/* ... כל תוכן ההדר שלך נשאר זהה ... */}
+      <div className="avatar">
+        <img src={Me} alt="avatar" />
       </div>
-    </>
-  );
+      <div className="actions">
+        <button>
+          <CommunitiesIcon />
+        </button>
+        {/* הכפתור הזה פותח את הסטטוס */}
+        <button onClick={() => setShowStatus(true)}>
+          <StatusIcon />
+        </button>
+        <button>
+          <ChatIcon />
+        </button>
+        <button onClick={setMoreMenuAnchor}>
+          <MoreIcon />
+        </button>
+      </div>
+      <HeaderMenu
+        anchorEl={state.moreMenuAnchor}
+        release={releaseMoreMenuAnchor}
+      />
+    </header>
+
+    {/* =====[ התיקון נמצא כאן ]===== */}
+    {/* 1. הסרנו את ה-div-ים העוטפים.
+      2. העברנו את הפונקציה onClose לקומפוננטה.
+    */}
+    {showStatus && <StatusViewer onClose={() => setShowStatus(false)} />}
+    
+    {/* ... כל שאר הקוד של הקומפוננטה ממשיך מכאן ... */}
+    <div className="inner-container">
+      <div className="search-container">
+        <Filter placeholder="Search or start a new chat" />
+        <button
+          onClick={toggleFilterUnRead}
+          className={`filter-btn ${state.unreadOnly ? "active" : ""}`}
+        >
+          <PyramidIcon />
+        </button>
+      </div>
+
+      <div
+        className={`chats-container ${
+          state.notification.show ? "has-notification" : ""
+        }`}
+      >
+        {/* ... וכו' ... */}
+        {(state.unreadOnly ? state.filtered : chats).map((chat) => (
+          <ChatItem
+            current={chat === current}
+            key={chat.id.user}
+            chat={chat}
+            onPick={() => pickChat(chat)}
+          />
+        ))}
+      </div>
+    </div>
+  </>
+);
 };
 
 export default ChatSidebar;
