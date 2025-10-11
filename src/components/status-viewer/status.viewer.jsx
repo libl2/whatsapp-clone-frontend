@@ -10,7 +10,6 @@ const StatusViewer = ({ onClose }) => {
   useEffect(() => {
     fetchStatuses().then((res) => {
       const data = res.data;
-      //console.log('סטטוסים מהשרת:', data);
       const grouped = {};
       data.forEach((status) => {
         if (!grouped[status.contactId]) {
@@ -84,11 +83,9 @@ const StatusViewer = ({ onClose }) => {
   // === רכיבי תצוגה ===
   const renderStatusContent = (status) => {
     if (!status) return null;
-        //console.log('סטטוס נבחר:', status);
     // הצגת מדיה או הודעה
     if (status.mediaUrl) {
       if (status.type === 'image') {
-        console.log('מציג תמונה');
         return (
           <img src={status.mediaUrl} alt="status" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: 8, objectFit: 'contain' }} />
         );
