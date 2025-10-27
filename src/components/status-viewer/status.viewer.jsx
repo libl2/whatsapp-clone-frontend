@@ -17,9 +17,15 @@ const StatusViewer = ({ onClose }) => {
             contactName: status.contactName,
             avatar: status.avatarUrl,
             statuses: [],
+            // track last timestamp for this contact to show in list
+            lastTimestamp: status.timestamp || null,
           };
         }
         grouped[status.contactId].statuses.push(status);
+        // update lastTimestamp to the latest (max) timestamp
+        if (status.timestamp && (!grouped[status.contactId].lastTimestamp || status.timestamp > grouped[status.contactId].lastTimestamp)) {
+          grouped[status.contactId].lastTimestamp = status.timestamp;
+        }
       });
       setGroupedStatuses(grouped);
     });
@@ -64,6 +70,25 @@ const StatusViewer = ({ onClose }) => {
   // === פונקציות ניווט וסגירה ===
   const handleCloseViewer = () => setSelectedContact(null);
 
+  // format timestamp (seconds) to readable string, respecting today/yesterday
+  const formatTimestamp = (unixTs) => {
+    if (!unixTs) return '';
+    // message.timestamp appears to be in seconds
+    const date = new Date(unixTs * 1000);
+    const now = new Date();
+    const isSameDay = date.toDateString() === now.toDateString();
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (isSameDay) return `היום, ${timeStr}`;
+    if (isYesterday) return `אתמול, ${timeStr}`;
+    // otherwise show date and time
+    const dateStr = date.toLocaleDateString();
+    return `${dateStr}, ${timeStr}`;
+  };
+
   const handleNext = () => {
     if (!selectedContact) return;
     const contactStatuses = groupedStatuses[selectedContact].statuses;
@@ -80,6 +105,9 @@ const StatusViewer = ({ onClose }) => {
     }
   };
 
+  // current status for the selected contact
+  const currentStatus = selectedContact ? groupedStatuses[selectedContact]?.statuses?.[currentIndex] : null;
+
   // === רכיבי תצוגה ===
   const renderStatusContent = (status) => {
     if (!status) return null;
@@ -87,22 +115,29 @@ const StatusViewer = ({ onClose }) => {
     if (status.mediaUrl) {
       if (status.type === 'image') {
         return (
-          <img src={status.mediaUrl} alt="status" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: 8, objectFit: 'contain' }} />
+            <div>
+                <img src={status.mediaUrl} alt="status" style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: 8, objectFit: 'contain' }} />
+                <p>{status.body}</p>
+            </div>
         );
       }
       if (status.type === 'video') {
         return (
-          <video key={status.id} src={status.mediaUrl} autoPlay onEnded={handleNext} style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: 8 }} />
+            <div>
+                <video key={status.id} src={status.mediaUrl} autoPlay onEnded={handleNext} style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: 8 }} />
+                <p>{status.body}</p>
+            </div>
         );
       }
     }
-    if (status.content) {
+
+    if (status.type === 'chat') {
       return (
         <div style={{
           marginTop: 16, fontSize: 24, padding: '40px 20px',
           backgroundColor: '#384953', borderRadius: 8, minWidth: '300px', maxWidth: '500px'
         }}>
-          {status.content}
+          {status.body}
         </div>
       );
     }
@@ -154,7 +189,10 @@ const StatusViewer = ({ onClose }) => {
               <img src={avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName)}&background=random`} alt={contactName} style={{ width: 48, height: 48, borderRadius: '50%', marginLeft: 16, border: '2.5px solid #25d366' }} />
               <div>
                 <div style={{ fontWeight: 'bold', fontSize: 17 }}>{contactName}</div>
-                <div style={{ fontSize: 13, color: '#666' }}>היום, 10:30</div>
+                <div style={{ fontSize: 13, color: '#666' }}>{
+                  // show last status timestamp for this contact if available
+                  (groupedStatuses[contactId] && groupedStatuses[contactId].lastTimestamp) ? formatTimestamp(groupedStatuses[contactId].lastTimestamp) : ''
+                }</div>
               </div>
             </li>
           ))}
@@ -175,7 +213,13 @@ const StatusViewer = ({ onClose }) => {
 
             <div style={{ position: 'absolute', top: 50, right: 20, display: 'flex', alignItems: 'center', zIndex: 10 }}>
               <img src={groupedStatuses[selectedContact].avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(groupedStatuses[selectedContact].contactName)}&background=random`} alt="" style={{ width: 40, height: 40, borderRadius: '50%', marginLeft: 12 }} />
-              <span style={{ fontWeight: 'bold', fontSize: 17 }}>{groupedStatuses[selectedContact].contactName}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                <span style={{ fontWeight: 'bold', fontSize: 17 }}>{groupedStatuses[selectedContact].contactName}</span>
+                <div style={{ fontSize: 13, color: '#ccc', marginTop: 4 }}>{
+                  // show timestamp of the currently displayed status, fallback to contact lastTimestamp
+                  currentStatus?.timestamp ? formatTimestamp(currentStatus.timestamp) : formatTimestamp(groupedStatuses[selectedContact].lastTimestamp)
+                }</div>
+              </div>
             </div>
 
             {renderStatusContent(groupedStatuses[selectedContact].statuses[currentIndex])}
