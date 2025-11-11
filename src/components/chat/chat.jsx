@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { fetchStatuses } from "../../services/api.service";
 
 const StatusViewer = ({ onClose }) => {
@@ -14,6 +14,7 @@ const StatusViewer = ({ onClose }) => {
       return {};
     }
   });
+  const firstUnreadRef = useRef(null);
 
   useEffect(() => {
     fetchStatuses().then((res) => {
@@ -72,6 +73,33 @@ const StatusViewer = ({ onClose }) => {
     }
   // eslint-disable-next-line
   }, [currentIndex, selectedContact, groupedStatuses]);
+
+  // קפיצה להודעה הראשונה שלא נקראה
+  useEffect(() => {
+    if (statuses.length > 0) {
+      const firstUnreadIdx = statuses.findIndex(s => !(readStatusIds[selectedContact] || []).includes(s.id));
+      if (firstUnreadIdx !== -1 && firstUnreadRef.current) {
+        firstUnreadRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [statuses, selectedContact, readStatusIds]);
+
+  // כאשר מוצגת הודעה, סמן אותה כנקראה
+  useEffect(() => {
+    if (statuses.length > 0) {
+      const firstUnreadIdx = statuses.findIndex(s => !(readStatusIds[selectedContact] || []).includes(s.id));
+      if (firstUnreadIdx !== -1) {
+        const toMark = statuses.slice(firstUnreadIdx).map(s => s.id);
+        const updated = {
+          ...readStatusIds,
+          [selectedContact]: [...(readStatusIds[selectedContact] || []), ...toMark]
+        };
+        setReadStatusIds(updated);
+        localStorage.setItem('readStatusIds', JSON.stringify(updated));
+        // אפשרות: שלח לשרת/וואטסאפ שההודעות נקראו
+      }
+    }
+  }, [statuses, selectedContact]);
 
   // === סגנונות CSS ===
   const mainContainerStyle = {
