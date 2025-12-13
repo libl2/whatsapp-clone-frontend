@@ -34,9 +34,19 @@ const initialState = {
 const ChatBox = () => {
   const { chat, dispatch, showChatSearch } = useAppContext();
   const [state, setState] = useState(initialState);
+  const [unreadAnchorId, setUnreadAnchorId] = useState(null);
   const [inputText, setInputText] = useState("");
+  const messageListRef = useRef(null);
+  const unreadMarkerRef = useRef(null);
   const textareaRef = useRef(null);
   const date = moment(chat.date).format("DD/MM/YYYY");
+
+  const extractMessageId = (message) =>
+    (message && message.id && (message.id._serialized || message.id.id)) ||
+    message?.id;
+
+  const getUnreadCount = (currentChat) =>
+    currentChat?.unreadCount ?? currentChat?.unread ?? 0;
 
   const hidePlate = () => {
     setState({ ...state, plate: PlateType.none });
@@ -58,18 +68,47 @@ const ChatBox = () => {
   };
 
   useEffect(() => {
-    if (!state.loading) {
-      setState({ ...state, loading: true });
-    }
+    setState((prev) => ({ ...prev, loading: true }));
 
     fetchMessages(chat.id._serialized).then((res) => {
-      setState({
-        ...state,
-        messages: res.data,
+      const sortedMessages = [...res.data].sort(
+        (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
+      );
+
+      setState((prev) => ({
+        ...prev,
+        messages: sortedMessages,
         loading: false,
-      });
+      }));
     });
   }, [chat]);
+
+  useEffect(() => {
+    if (state.loading || !state.messages.length) return;
+
+    const unreadCount = getUnreadCount(chat);
+    if (unreadCount > 0) {
+      const anchorIndex = Math.max(state.messages.length - unreadCount, 0);
+      const anchorMessage = state.messages[anchorIndex];
+      const anchorId = extractMessageId(anchorMessage);
+      setUnreadAnchorId(anchorId || null);
+      return;
+    }
+
+    setUnreadAnchorId(null);
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
+  }, [state.loading, state.messages, chat]);
+
+  useEffect(() => {
+    if (unreadAnchorId && unreadMarkerRef.current) {
+      unreadMarkerRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [unreadAnchorId, state.messages]);
 
   const handleInputChange = (e) => {
     const el = e.target;
@@ -132,13 +171,33 @@ const ChatBox = () => {
         anchorEl={state.moreMenuAnchor}
         release={releaseMoreMenuAnchor}
       />
-      <main className={state.loading ? "loading" : ""}>
+      <main
+        ref={messageListRef}
+        className={state.loading ? "loading" : ""}
+      >
         {state.loading ? (
           <div className="loader-wrapper">
             <AnimatedLoader />
           </div>
         ) : (
-          state.messages.map((msg) => <MessageItem msg={msg} key={msg.id.id} />)
+          state.messages.map((msg, index) => {
+            const messageId = extractMessageId(msg) || `msg-${index}`;
+            const isUnreadAnchor =
+              unreadAnchorId && messageId === unreadAnchorId;
+
+            return (
+              <div
+                key={messageId}
+              >
+                {unreadAnchorId && isUnreadAnchor && (
+                  <div className="unread-divider" ref={unreadMarkerRef}>
+                    <span>הודעות שלא נקראו</span>
+                  </div>
+                )}
+                <MessageItem msg={msg} chat={chat} />
+              </div>
+            );
+          })
         )}
       </main>
       <footer className={state.plate ? "has-plate" : ""}>

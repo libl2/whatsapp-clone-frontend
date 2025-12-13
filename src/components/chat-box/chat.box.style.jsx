@@ -111,6 +111,29 @@ const Wrapper = styled.div`
       svg {
       }
     }
+
+    .unread-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #5670c9;
+      font-size: 12px;
+      padding: 4px 72px;
+      margin: 8px 0;
+      box-sizing: border-box;
+      span {
+        white-space: nowrap;
+      }
+    }
+
+    .unread-divider::before,
+    .unread-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #5670c9;
+      opacity: 0.4;
+    }
   }
   footer {
     display: flex;
