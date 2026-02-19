@@ -20,6 +20,7 @@ import {
   CHAT_RESET_OPERATION_COMMAND,
   APP_LOADED,
   CHAT_MESSAGE_RECEIVED,
+  CHAT_MARKED_AS_READ,
 
   APP_AUTHENTICATE,
   APP_LOADING_PROGRESS,
@@ -206,6 +207,23 @@ const reducer = (state, action) => {
         ...state,
         chats: [updatedChat, ...filteredChats],
         chat: isCurrentChat ? { ...state.chat, ...updatedChat } : state.chat,
+      };
+    }
+    case CHAT_MARKED_AS_READ: {
+      const chatId = action.payload?.chatId;
+      if (!chatId) return state;
+
+      return {
+        ...state,
+        chats: state.chats.map((item) =>
+          getChatSerializedId(item) === chatId
+            ? { ...item, unreadCount: 0, unread: 0 }
+            : item
+        ),
+        chat:
+          state.chat && getChatSerializedId(state.chat) === chatId
+            ? { ...state.chat, unreadCount: 0, unread: 0 }
+            : state.chat,
       };
     }
     default:

@@ -40,4 +40,17 @@ const fetchStatuses = () => {
   return axios.get(url);
 };
 
-export { fetchQR, fetchChats, fetchMessages, searchMessages, fetchAvatarUrl, fetchStatuses };
+const markChatAsRead = (id) => {
+  const url = `${apiPrefix}/chat/${id}/mark-read`;
+  return axios.post(url);
+};
+
+export {
+  fetchQR,
+  fetchChats,
+  fetchMessages,
+  searchMessages,
+  fetchAvatarUrl,
+  fetchStatuses,
+  markChatAsRead,
+};
