@@ -35,7 +35,9 @@ const ChatSidebar = () => {
 
   const toggleFilterUnRead = () => {
     const unread = !state.unreadOnly;
-    const filtered = unread ? chats.filter((chat) => chat.unread > 0) : [];
+    const filtered = unread
+      ? chats.filter((chat) => (chat.unreadCount ?? chat.unread ?? 0) > 0)
+      : [];
     setState({ ...state, unreadOnly: unread, filtered });
   };
 

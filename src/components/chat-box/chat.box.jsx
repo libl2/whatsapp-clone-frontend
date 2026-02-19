@@ -15,6 +15,7 @@ import ChatboxMenu from "../menus/chatbox.menu";
 import MessageItem from "../message-item/message.item";
 import { useAppContext } from "../../context/appContext";
 import { fetchMessages } from "../../services/api.service";
+import { socket } from "../../services/socket.service";
 import moment from "moment";
 
 const PlateType = {
@@ -47,6 +48,9 @@ const ChatBox = () => {
 
   const getUnreadCount = (currentChat) =>
     currentChat?.unreadCount ?? currentChat?.unread ?? 0;
+
+  const getChatIdFromMessage = (message) =>
+    message?.fromMe ? message?.to : message?.from;
 
   const hidePlate = () => {
     setState({ ...state, plate: PlateType.none });
@@ -109,6 +113,40 @@ const ChatBox = () => {
       });
     }
   }, [unreadAnchorId, state.messages]);
+
+  useEffect(() => {
+    const currentChatId =
+      (chat && chat.id && (chat.id._serialized || chat.id.id || chat.id)) ||
+      chat?.id;
+
+    const handleIncomingMessage = (payload) => {
+      const message = payload?.msg || payload?.message || payload;
+      if (!message) return;
+
+      const incomingChatId = getChatIdFromMessage(message);
+      if (incomingChatId === "status@broadcast") return;
+      if (!incomingChatId || incomingChatId !== currentChatId) return;
+
+      setState((prev) => {
+        const alreadyExists = prev.messages.some(
+          (m) => extractMessageId(m) === extractMessageId(message)
+        );
+
+        if (alreadyExists) return prev;
+
+        const updated = [...prev.messages, message].sort(
+          (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
+        );
+
+        return { ...prev, messages: updated };
+      });
+    };
+
+    socket.on("message", handleIncomingMessage);
+    return () => {
+      socket.off("message", handleIncomingMessage);
+    };
+  }, [chat]);
 
   const handleInputChange = (e) => {
     const el = e.target;

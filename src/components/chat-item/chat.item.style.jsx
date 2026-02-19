@@ -29,11 +29,13 @@ const Wrapper = styled.div`
     display: flex;
     flex-grow: 1;
     flex-direction: column;
+    min-width: 0;
   }
   .info {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-width: 0;
 
     .title {
       display: flex;
@@ -61,9 +63,13 @@ const Wrapper = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-width: 0;
+    gap: 6px;
     .last-message {
       align-items: center;
       display: flex;
+      flex: 1 1 auto;
+      min-width: 0;
       font-size: 14px;
       line-height: 19px;
       color: var(--butterbar-secondary);
@@ -72,7 +78,8 @@ const Wrapper = styled.div`
       .mode {
       }
       .text {
-        flex-grow: 1;
+        flex: 1 1 auto;
+        min-width: 0;
         overflow: hidden;
         font-size: 14px;
         font-weight: 400;
@@ -80,10 +87,18 @@ const Wrapper = styled.div`
         text-overflow: ellipsis;
         white-space: nowrap;
         display: flex;
+        max-width: 100%;
 
         svg {
           margin-inline-end: 5px;
           color: var(--icon-ack);
+        }
+
+        span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          display: block;
         }
       }
     }

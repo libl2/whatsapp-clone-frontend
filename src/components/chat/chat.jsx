@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { fetchStatuses } from "../../services/api.service";
+import { getDocumentDirection } from "../../utils/direction";
 
 const StatusViewer = ({ onClose }) => {
   const [statuses, setStatuses] = useState([]);
@@ -102,9 +103,10 @@ const StatusViewer = ({ onClose }) => {
   }, [statuses, selectedContact]);
 
   // === סגנונות CSS ===
+  const documentDirection = getDocumentDirection();
   const mainContainerStyle = {
     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-    display: 'flex', direction: 'rtl',
+    display: 'flex', direction: documentDirection,
     backgroundColor: 'var(--main-bg, #eef0f1)',
     zIndex: 2000,
   };

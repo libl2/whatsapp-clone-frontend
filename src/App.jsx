@@ -6,11 +6,13 @@ import ChatsPage from "./pages/chats/chats.page";
 import ErrorPage from "./pages/error/error.page";
 import { socket } from './services/socket.service';
 import { useAppContext } from "./context/appContext";
+import { CHAT_MESSAGE_RECEIVED } from "./context/actions";
+import { applyDocumentDirection, detectDirection } from "./utils/direction";
 
 
 const App = () => {
   const [backendStatus, setBackendStatus] = useState(null);
-  const {authenticate, loadingProgress, ready} = useAppContext();
+  const {authenticate, loadingProgress, ready, dispatch} = useAppContext();
   const loginUser = () => {
     localStorage.setItem("user", '{"loggedIn": true}');
   };
@@ -32,6 +34,12 @@ const App = () => {
     loginUser();
     loadingProgress(payload);
   }
+  const onMessage = (payload) => {
+    dispatch({
+      type: CHAT_MESSAGE_RECEIVED,
+      payload
+    });
+  };
 
   useEffect(() => {
       fetch("/api/status")
@@ -41,11 +49,23 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    const updateDirection = () => {
+      const direction = detectDirection();
+      applyDocumentDirection(direction);
+    };
+
+    updateDirection();
+    window.addEventListener("languagechange", updateDirection);
+    return () => window.removeEventListener("languagechange", updateDirection);
+  }, []);
+
+  useEffect(() => {
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('ready', onReady);
     socket.on('authenticated', onAuthenticated);
     socket.on('loading', onLoading);
+    socket.on('message', onMessage);
 
     return () => {
       socket.off('connect', onConnect);
@@ -53,6 +73,7 @@ const App = () => {
       socket.off('ready', onReady);
       socket.off('authenticated', onAuthenticated);
       socket.off('loading', onLoading);
+      socket.off('message', onMessage);
     };
   }, []);
 
