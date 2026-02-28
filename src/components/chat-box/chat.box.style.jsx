@@ -116,7 +116,7 @@ const Wrapper = styled.div`
       display: flex;
       align-items: center;
       gap: 8px;
-      color: #5670c9;
+      color: var(--unread-timestamp);
       font-size: 12px;
       padding: 4px 72px;
       margin: 8px 0;
@@ -131,7 +131,7 @@ const Wrapper = styled.div`
       content: "";
       flex: 1;
       height: 1px;
-      background: #5670c9;
+      background: var(--unread-timestamp);
       opacity: 0.4;
     }
   }

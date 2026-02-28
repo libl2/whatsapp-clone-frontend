@@ -13,13 +13,16 @@ import StarIcon from "../icons/star.icon";
 import Wrapper from "./chat.info.style";
 import Switch from "@mui/material/Switch";
 import PhoneFormatter from "../phone-formatter/phone.formatter";
+import { getChatDisplayName } from "../../utils/chat";
 
 const ChatInfo = ({ chat }) => {
+  const title = getChatDisplayName(chat);
+
   return (
     <Wrapper className="chat-info-wrapper">
       <div className="person colored-bg">
         <Avatar chat={chat} />
-        <h3>{chat.title}</h3>
+        <h3>{title}</h3>
         <h4>
           <PhoneFormatter phone={chat.identifier} />
         </h4>
@@ -89,14 +92,14 @@ const ChatInfo = ({ chat }) => {
           <div className="icon">
             <BlockIcon />
           </div>
-          <div className="title">Block {chat.title}</div>
+          <div className="title">Block {title}</div>
           <div className="option"></div>
         </div>
         <div className="command">
           <div className="icon">
             <ReportIcon />
           </div>
-          <div className="title">Report {chat.title}</div>
+          <div className="title">Report {title}</div>
           <div className="option"></div>
         </div>
         <div className="command">

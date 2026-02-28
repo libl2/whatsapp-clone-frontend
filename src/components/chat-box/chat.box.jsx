@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Wrapper from "./chat.box.style";
 import MicIcon from "../icons/mic.icon";
 import EmojiIcon from "../icons/emoji.icon";
@@ -14,10 +14,16 @@ import AnimatedLoader from "../animated-loader/animated.loader";
 import ChatboxMenu from "../menus/chatbox.menu";
 import MessageItem from "../message-item/message.item";
 import { useAppContext } from "../../context/appContext";
-import { CHAT_MARKED_AS_READ } from "../../context/actions";
+import {
+  CHAT_MARKED_AS_READ,
+  CHAT_UNREAD_COUNT_UPDATED,
+} from "../../context/actions";
 import { fetchMessages, markChatAsRead } from "../../services/api.service";
 import { socket } from "../../services/socket.service";
 import moment from "moment";
+import { getChatDisplayName, getChatSerializedId } from "../../utils/chat";
+
+const READ_MESSAGES_STORAGE_KEY = "readMessageIdsByChat";
 
 const PlateType = {
   none: 0,
@@ -33,6 +39,28 @@ const initialState = {
   messages: [],
 };
 
+const readStore = {
+  get() {
+    try {
+      return JSON.parse(localStorage.getItem(READ_MESSAGES_STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  },
+  getChatReadSet(chatId) {
+    const all = this.get();
+    return new Set(Array.isArray(all[chatId]) ? all[chatId] : []);
+  },
+  add(chatId, messageId) {
+    if (!chatId || !messageId) return;
+    const all = this.get();
+    const existing = new Set(Array.isArray(all[chatId]) ? all[chatId] : []);
+    existing.add(messageId);
+    all[chatId] = Array.from(existing);
+    localStorage.setItem(READ_MESSAGES_STORAGE_KEY, JSON.stringify(all));
+  },
+};
+
 const ChatBox = () => {
   const { chat, dispatch, showChatSearch } = useAppContext();
   const [state, setState] = useState(initialState);
@@ -41,11 +69,15 @@ const ChatBox = () => {
   const messageListRef = useRef(null);
   const unreadMarkerRef = useRef(null);
   const textareaRef = useRef(null);
-  const initialUnreadRef = useRef(0);
   const activeChatIdRef = useRef(null);
   const markReadInFlightRef = useRef(false);
-  const userInteractedRef = useRef(false);
-  const date = moment(chat.date).format("DD/MM/YYYY");
+  const observerRef = useRef(null);
+  const messageNodesRef = useRef(new Map());
+  const unreadMessageIdsRef = useRef(new Set());
+  const readUnreadMessageIdsRef = useRef(new Set());
+  const initialUnreadScrollDoneRef = useRef(false);
+
+  const date = useMemo(() => moment(chat?.date).format("DD/MM/YYYY"), [chat?.date]);
 
   const extractMessageId = (message) =>
     (message && message.id && (message.id._serialized || message.id.id)) ||
@@ -57,35 +89,27 @@ const ChatBox = () => {
   const getChatIdFromMessage = (message) =>
     message?.fromMe ? message?.to : message?.from;
 
-  const getCurrentChatId = (currentChat) =>
-    currentChat?.id?._serialized || currentChat?.id?.id || currentChat?.id;
+  const chatId = getChatSerializedId(chat);
+  const title = getChatDisplayName(chat);
 
-  const chatId = getCurrentChatId(chat);
-
-  const isNearBottom = () => {
-    const list = messageListRef.current;
-    if (!list) return false;
-    const threshold = 24;
-    return list.scrollHeight - list.scrollTop - list.clientHeight <= threshold;
+  const syncUnreadCount = (nextCount) => {
+    if (!activeChatIdRef.current) return;
+    dispatch({
+      type: CHAT_UNREAD_COUNT_UPDATED,
+      payload: { chatId: activeChatIdRef.current, unreadCount: Math.max(0, nextCount) },
+    });
   };
 
-  const markCurrentChatReadIfNeeded = () => {
-    const chatId = activeChatIdRef.current;
-
-    if (!chatId) return;
-    if (initialUnreadRef.current <= 0) return;
-    if (!userInteractedRef.current) return;
-    if (markReadInFlightRef.current) return;
-    if (!isNearBottom()) return;
+  const markWholeChatAsRead = () => {
+    const activeChatId = activeChatIdRef.current;
+    if (!activeChatId || markReadInFlightRef.current) return;
 
     markReadInFlightRef.current = true;
-    markChatAsRead(chatId)
+    markChatAsRead(activeChatId)
       .then(() => {
-        initialUnreadRef.current = 0;
-        setUnreadAnchorId(null);
         dispatch({
           type: CHAT_MARKED_AS_READ,
-          payload: { chatId },
+          payload: { chatId: activeChatId },
         });
       })
       .catch((err) => {
@@ -94,37 +118,82 @@ const ChatBox = () => {
       });
   };
 
+  const onUnreadMessageViewed = (messageId) => {
+    if (!messageId) return;
+    if (!unreadMessageIdsRef.current.has(messageId)) return;
+    if (readUnreadMessageIdsRef.current.has(messageId)) return;
+
+    readUnreadMessageIdsRef.current.add(messageId);
+    readStore.add(activeChatIdRef.current, messageId);
+
+    const remaining =
+      unreadMessageIdsRef.current.size - readUnreadMessageIdsRef.current.size;
+
+    syncUnreadCount(remaining);
+
+    if (remaining <= 0 && unreadMessageIdsRef.current.size > 0) {
+      setUnreadAnchorId(null);
+      markWholeChatAsRead();
+    }
+  };
+
   const hidePlate = () => {
-    setState({ ...state, plate: PlateType.none });
+    setState((prev) => ({ ...prev, plate: PlateType.none }));
   };
 
   const emojiPlate = () => {
-    setState({ ...state, plate: PlateType.emoji });
+    setState((prev) => ({ ...prev, plate: PlateType.emoji }));
   };
 
   const setMoreMenuAnchor = (event) => {
-    setState({ ...state, moreMenuAnchor: event.currentTarget });
+    setState((prev) => ({ ...prev, moreMenuAnchor: event.currentTarget }));
   };
+
   const releaseMoreMenuAnchor = (command) => {
     if (command) {
       command.payload = command.payload || {};
       dispatch(command);
     }
-    setState({ ...state, moreMenuAnchor: null });
+    setState((prev) => ({ ...prev, moreMenuAnchor: null }));
   };
 
   useEffect(() => {
     activeChatIdRef.current = chatId;
-    initialUnreadRef.current = getUnreadCount(chat);
     markReadInFlightRef.current = false;
-    userInteractedRef.current = false;
+    unreadMessageIdsRef.current = new Set();
+    readUnreadMessageIdsRef.current = new Set();
+    initialUnreadScrollDoneRef.current = false;
+    setUnreadAnchorId(null);
 
-    setState((prev) => ({ ...prev, loading: true }));
+    setState((prev) => ({ ...prev, loading: true, messages: [] }));
 
     fetchMessages(chatId).then((res) => {
-      const sortedMessages = [...res.data].sort(
+      if (activeChatIdRef.current !== chatId) return;
+
+      const sortedMessages = [...(res.data || [])].sort(
         (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
       );
+
+      const unreadCount = getUnreadCount(chat);
+      const candidateUnreadIds = sortedMessages
+        .slice(Math.max(sortedMessages.length - unreadCount, 0))
+        .map((message) => extractMessageId(message))
+        .filter(Boolean);
+
+      unreadMessageIdsRef.current = new Set(candidateUnreadIds);
+
+      const persistedReadForChat = readStore.getChatReadSet(chatId);
+      const readUnreadIds = candidateUnreadIds.filter((id) =>
+        persistedReadForChat.has(id)
+      );
+      readUnreadMessageIdsRef.current = new Set(readUnreadIds);
+
+      const firstUnreadId = candidateUnreadIds.find(
+        (id) => !readUnreadMessageIdsRef.current.has(id)
+      );
+
+      setUnreadAnchorId(firstUnreadId || null);
+      syncUnreadCount(candidateUnreadIds.length - readUnreadIds.length);
 
       setState((prev) => ({
         ...prev,
@@ -132,64 +201,65 @@ const ChatBox = () => {
         loading: false,
       }));
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId]);
 
   useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
     if (state.loading || !state.messages.length) return;
 
-    const unreadCount = initialUnreadRef.current;
-    if (unreadCount > 0) {
-      const anchorIndex = Math.max(state.messages.length - unreadCount, 0);
-      const anchorMessage = state.messages[anchorIndex];
-      const anchorId = extractMessageId(anchorMessage);
-      setUnreadAnchorId(anchorId || null);
-      return;
-    }
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const viewedMessageId = entry.target.getAttribute("data-message-id");
+          onUnreadMessageViewed(viewedMessageId);
+        });
+      },
+      {
+        threshold: 0.72,
+      }
+    );
 
-    setUnreadAnchorId(null);
-    if (messageListRef.current) {
-      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
-    }
+    state.messages.forEach((message) => {
+      const id = extractMessageId(message);
+      if (!id) return;
+      if (!unreadMessageIdsRef.current.has(id)) return;
+      if (readUnreadMessageIdsRef.current.has(id)) return;
 
-    markCurrentChatReadIfNeeded();
+      const node = messageNodesRef.current.get(id);
+      if (node) {
+        observerRef.current.observe(node);
+      }
+    });
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.loading, state.messages]);
 
   useEffect(() => {
     if (unreadAnchorId && unreadMarkerRef.current) {
+      if (initialUnreadScrollDoneRef.current) return;
+
+      initialUnreadScrollDoneRef.current = true;
       unreadMarkerRef.current.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
+      return;
     }
 
-    markCurrentChatReadIfNeeded();
+    if (messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+    }
   }, [unreadAnchorId, state.messages]);
-
-  useEffect(() => {
-    const list = messageListRef.current;
-    if (!list) return;
-
-    const onUserIntent = () => {
-      userInteractedRef.current = true;
-    };
-
-    const onScroll = () => {
-      markCurrentChatReadIfNeeded();
-    };
-
-    list.addEventListener("wheel", onUserIntent, { passive: true });
-    list.addEventListener("touchstart", onUserIntent, { passive: true });
-    list.addEventListener("mousedown", onUserIntent);
-    list.addEventListener("keydown", onUserIntent);
-    list.addEventListener("scroll", onScroll);
-    return () => {
-      list.removeEventListener("wheel", onUserIntent);
-      list.removeEventListener("touchstart", onUserIntent);
-      list.removeEventListener("mousedown", onUserIntent);
-      list.removeEventListener("keydown", onUserIntent);
-      list.removeEventListener("scroll", onScroll);
-    };
-  }, [state.loading, state.messages]);
 
   useEffect(() => {
     const handleIncomingMessage = (payload) => {
@@ -224,18 +294,15 @@ const ChatBox = () => {
   const handleInputChange = (e) => {
     const el = e.target;
     setInputText(el.value);
-    // auto-resize
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
   };
 
   const handleSend = () => {
     if (!inputText.trim()) {
-      // placeholder for voice recording action
       return;
     }
 
-    // temporary send - integrate with real send API/event
     console.log("send message:", inputText);
     setInputText("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -248,6 +315,16 @@ const ChatBox = () => {
     }
   };
 
+  const attachMessageNode = (messageId, node) => {
+    if (!messageId) return;
+    if (!node) {
+      messageNodesRef.current.delete(messageId);
+      return;
+    }
+
+    messageNodesRef.current.set(messageId, node);
+  };
+
   return (
     <Wrapper className="chatbox-container">
       <div className="message-bg"></div>
@@ -257,7 +334,7 @@ const ChatBox = () => {
             <Avatar chat={chat} />
           </div>
           <div className="info">
-            <div className="title">{chat.name}</div>
+            <div className="title">{title}</div>
             <div className="date">{date}</div>
           </div>
         </div>
@@ -282,10 +359,7 @@ const ChatBox = () => {
         anchorEl={state.moreMenuAnchor}
         release={releaseMoreMenuAnchor}
       />
-      <main
-        ref={messageListRef}
-        className={state.loading ? "loading" : ""}
-      >
+      <main ref={messageListRef} className={state.loading ? "loading" : ""}>
         {state.loading ? (
           <div className="loader-wrapper">
             <AnimatedLoader />
@@ -299,6 +373,8 @@ const ChatBox = () => {
             return (
               <div
                 key={messageId}
+                data-message-id={messageId}
+                ref={(node) => attachMessageNode(messageId, node)}
               >
                 {unreadAnchorId && isUnreadAnchor && (
                   <div className="unread-divider" ref={unreadMarkerRef}>
@@ -356,7 +432,9 @@ const ChatBox = () => {
             <button
               disabled={state.loading}
               onClick={handleSend}
-              className={`send-action action-holder ${inputText.trim() ? "has-text" : ""}`}
+              className={`send-action action-holder ${
+                inputText.trim() ? "has-text" : ""
+              }`}
             >
               {inputText.trim() ? <SendIcon /> : <MicIcon />}
             </button>
@@ -368,3 +446,4 @@ const ChatBox = () => {
 };
 
 export default ChatBox;
+

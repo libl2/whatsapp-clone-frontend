@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { fetchStatuses } from "../../services/api.service";
 import { getDocumentDirection } from "../../utils/direction";
+
+const READ_STATUS_STORAGE_KEY = "readStatusIds";
 
 const StatusViewer = ({ onClose }) => {
   const [groupedStatuses, setGroupedStatuses] = useState({});
@@ -8,14 +10,25 @@ const StatusViewer = ({ onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [readStatusIds, setReadStatusIds] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("readStatusIds") || "{}");
+      return JSON.parse(localStorage.getItem(READ_STATUS_STORAGE_KEY) || "{}");
     } catch {
       return {};
     }
   });
 
   const getContactId = (status) =>
-    status.contactId || status.from || status.id || `unknown-${status.id}`;
+    status.contactId || status.from || status.id || `unknown-${status.timestamp || Date.now()}`;
+
+  const getStatusUniqueId = (status) => {
+    if (status.id) return String(status.id);
+    return [
+      getContactId(status),
+      status.timestamp || "",
+      status.type || "",
+      status.body || "",
+      status.mediaUrl || "",
+    ].join("::");
+  };
 
   const getNameFromId = (id) =>
     (id || "").replace(/@(c\.us|s\.whatsapp\.net)$/, "") || "Unknown contact";
@@ -30,10 +43,15 @@ const StatusViewer = ({ onClose }) => {
 
   useEffect(() => {
     fetchStatuses().then((res) => {
-      const data = res.data || [];
+      const data = Array.isArray(res.data) ? res.data : [];
       const grouped = {};
+      const seenIds = new Set();
 
       data.forEach((status) => {
+        const uniqueId = getStatusUniqueId(status);
+        if (seenIds.has(uniqueId)) return;
+        seenIds.add(uniqueId);
+
         const contactId = getContactId(status);
         const contactName = getContactName(status, contactId);
         const avatar = getAvatar(status);
@@ -50,7 +68,7 @@ const StatusViewer = ({ onClose }) => {
         grouped[contactId].contactName =
           grouped[contactId].contactName || contactName;
         grouped[contactId].avatar = grouped[contactId].avatar || avatar;
-        grouped[contactId].statuses.push(status);
+        grouped[contactId].statuses.push({ ...status, _uniqueId: uniqueId });
 
         if (
           status.timestamp &&
@@ -61,48 +79,62 @@ const StatusViewer = ({ onClose }) => {
         }
       });
 
+      Object.keys(grouped).forEach((contactId) => {
+        grouped[contactId].statuses.sort(
+          (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
+        );
+      });
+
       setGroupedStatuses(grouped);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const selectedStatuses = useMemo(
+    () => (selectedContact ? groupedStatuses[selectedContact]?.statuses || [] : []),
+    [groupedStatuses, selectedContact]
+  );
+
   useEffect(() => {
-    const isVideo =
-      selectedContact &&
-      groupedStatuses[selectedContact]?.statuses[currentIndex]?.type === "video";
-    if (selectedContact && !isVideo) {
+    const current = selectedStatuses[currentIndex];
+    const isVideo = current?.type === "video";
+
+    if (selectedContact && current && !isVideo) {
       const timer = setTimeout(() => handleNext(), 5000);
       return () => clearTimeout(timer);
     }
-  }, [currentIndex, selectedContact]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, selectedContact, selectedStatuses]);
 
   useEffect(() => {
-    if (selectedContact && groupedStatuses[selectedContact]) {
-      const statuses = groupedStatuses[selectedContact].statuses;
-      const firstUnreadIdx = statuses.findIndex(
-        (s) => !(readStatusIds[selectedContact] || []).includes(s.id)
-      );
-      setCurrentIndex(firstUnreadIdx !== -1 ? firstUnreadIdx : 0);
-    }
-    // eslint-disable-next-line
-  }, [selectedContact, groupedStatuses]);
+    if (!selectedContact || !groupedStatuses[selectedContact]) return;
+
+    const statuses = groupedStatuses[selectedContact].statuses;
+    const firstUnreadIdx = statuses.findIndex(
+      (s) => !(readStatusIds[selectedContact] || []).includes(s._uniqueId)
+    );
+    setCurrentIndex(firstUnreadIdx !== -1 ? firstUnreadIdx : 0);
+  }, [selectedContact, groupedStatuses, readStatusIds]);
 
   useEffect(() => {
-    if (selectedContact && groupedStatuses[selectedContact]) {
-      const status = groupedStatuses[selectedContact].statuses[currentIndex];
-      if (status && !(readStatusIds[selectedContact] || []).includes(status.id)) {
-        const updated = {
-          ...readStatusIds,
-          [selectedContact]: [
-            ...(readStatusIds[selectedContact] || []),
-            status.id,
-          ],
-        };
-        setReadStatusIds(updated);
-        localStorage.setItem("readStatusIds", JSON.stringify(updated));
-      }
-    }
-    // eslint-disable-next-line
-  }, [currentIndex, selectedContact, groupedStatuses]);
+    if (!selectedContact || !groupedStatuses[selectedContact]) return;
+
+    const status = groupedStatuses[selectedContact].statuses[currentIndex];
+    if (!status) return;
+
+    const currentRead = new Set(readStatusIds[selectedContact] || []);
+    if (currentRead.has(status._uniqueId)) return;
+
+    currentRead.add(status._uniqueId);
+
+    const updated = {
+      ...readStatusIds,
+      [selectedContact]: Array.from(currentRead),
+    };
+
+    setReadStatusIds(updated);
+    localStorage.setItem(READ_STATUS_STORAGE_KEY, JSON.stringify(updated));
+  }, [currentIndex, selectedContact, groupedStatuses, readStatusIds]);
 
   const documentDirection = getDocumentDirection();
 
@@ -152,10 +184,11 @@ const StatusViewer = ({ onClose }) => {
 
   const formatTimestamp = (unixTs) => {
     if (!unixTs) return "";
+
     const date = new Date(unixTs * 1000);
     const now = new Date();
     const isSameDay = date.toDateString() === now.toDateString();
-    const yesterday = new Date();
+    const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     const isYesterday = date.toDateString() === yesterday.toDateString();
 
@@ -163,10 +196,11 @@ const StatusViewer = ({ onClose }) => {
       hour: "2-digit",
       minute: "2-digit",
     });
+
     if (isSameDay) return `Today, ${timeStr}`;
     if (isYesterday) return `Yesterday, ${timeStr}`;
-    const dateStr = date.toLocaleDateString();
-    return `${dateStr}, ${timeStr}`;
+
+    return `${date.toLocaleDateString()}, ${timeStr}`;
   };
 
   const handleNext = () => {
@@ -214,7 +248,7 @@ const StatusViewer = ({ onClose }) => {
         return (
           <div>
             <video
-              key={status.id}
+              key={status._uniqueId}
               src={status.mediaUrl}
               autoPlay
               onEnded={handleNext}
@@ -226,24 +260,21 @@ const StatusViewer = ({ onClose }) => {
       }
     }
 
-    if (status.type === "chat") {
-      return (
-        <div
-          style={{
-            marginTop: 16,
-            fontSize: 24,
-            padding: "40px 20px",
-            backgroundColor: "#384953",
-            borderRadius: 8,
-            minWidth: "300px",
-            maxWidth: "500px",
-          }}
-        >
-          {status.body}
-        </div>
-      );
-    }
-    return null;
+    return (
+      <div
+        style={{
+          marginTop: 16,
+          fontSize: 24,
+          padding: "40px 20px",
+          backgroundColor: "#384953",
+          borderRadius: 8,
+          minWidth: "300px",
+          maxWidth: "500px",
+        }}
+      >
+        {status.body}
+      </div>
+    );
   };
 
   const renderProgressBars = () => {
@@ -280,6 +311,7 @@ const StatusViewer = ({ onClose }) => {
     const entry = groupedStatuses[selectedContact];
     if (!entry) return null;
     const name = entry.contactName || getNameFromId(selectedContact);
+
     return (
       <div
         style={{
@@ -334,16 +366,18 @@ const StatusViewer = ({ onClose }) => {
               color: "var(--sidebar-close, #555)",
             }}
           >
-            ✕
+            ×
           </button>
         </div>
+
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {Object.entries(groupedStatuses).map(
             ([contactId, { contactName, avatar, statuses }]) => {
               const unreadCount = statuses.filter(
-                (s) => !(readStatusIds[contactId] || []).includes(s.id)
+                (s) => !(readStatusIds[contactId] || []).includes(s._uniqueId)
               ).length;
               const nameToShow = contactName || getNameFromId(contactId);
+
               return (
                 <li
                   key={contactId}
@@ -398,8 +432,7 @@ const StatusViewer = ({ onClose }) => {
                       )}
                     </div>
                     <div style={{ fontSize: 13, color: "#666" }}>
-                      {groupedStatuses[contactId] &&
-                      groupedStatuses[contactId].lastTimestamp
+                      {groupedStatuses[contactId] && groupedStatuses[contactId].lastTimestamp
                         ? formatTimestamp(groupedStatuses[contactId].lastTimestamp)
                         : ""}
                     </div>
@@ -428,7 +461,7 @@ const StatusViewer = ({ onClose }) => {
                 zIndex: 11,
               }}
             >
-              ✕
+              ×
             </button>
 
             {renderHeader()}
@@ -469,3 +502,4 @@ const StatusViewer = ({ onClose }) => {
 };
 
 export default StatusViewer;
+

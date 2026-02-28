@@ -21,20 +21,14 @@ import {
   APP_LOADED,
   CHAT_MESSAGE_RECEIVED,
   CHAT_MARKED_AS_READ,
+  CHAT_UNREAD_COUNT_UPDATED,
 
   APP_AUTHENTICATE,
   APP_LOADING_PROGRESS,
   APP_READY
 } from "./actions";
 import { defaultOperations } from "./defaults";
-
-const getChatSerializedId = (chat) =>
-  (chat &&
-    chat.id &&
-    (chat.id._serialized ||
-      (chat.id.user && chat.id.server && `${chat.id.user}@${chat.id.server}`) ||
-      chat.id)) ||
-  chat?.id;
+import { getChatDisplayName, getChatSerializedId } from "../utils/chat";
 
 const extractChatIdFromMessage = (message) =>
   message?.fromMe ? message?.to : message?.from;
@@ -145,10 +139,14 @@ const reducer = (state, action) => {
       const chatsPayload = Array.isArray(action.payload)
         ? action.payload
         : action.payload?.chats || [];
+      const normalizedChats = chatsPayload.map((chat) => ({
+        ...chat,
+        name: getChatDisplayName(chat),
+      }));
       return {
         ...state,
         loading: false,
-        chats: chatsPayload,
+        chats: normalizedChats,
       };
     case CHAT_MESSAGE_RECEIVED: {
       const message = action.payload?.msg || action.payload?.message || action.payload;
@@ -188,10 +186,14 @@ const reducer = (state, action) => {
         ? mapChat(existingChat)
         : {
             id: { _serialized: chatId },
-            name:
-              message.notifyName ||
-              (message._data && (message._data.notifyName || message._data.pushname)) ||
-              chatId,
+            name: getChatDisplayName({
+              id: { _serialized: chatId },
+              name:
+                message.notifyName ||
+                (message._data &&
+                  (message._data.notifyName || message._data.pushname)) ||
+                "",
+            }),
             timestamp: message.timestamp || Date.now() / 1000,
             unreadCount: isCurrentChat ? 0 : 1,
             unread: isCurrentChat ? 0 : 1,
@@ -223,6 +225,24 @@ const reducer = (state, action) => {
         chat:
           state.chat && getChatSerializedId(state.chat) === chatId
             ? { ...state.chat, unreadCount: 0, unread: 0 }
+            : state.chat,
+      };
+    }
+    case CHAT_UNREAD_COUNT_UPDATED: {
+      const chatId = action.payload?.chatId;
+      const nextUnread = Math.max(0, Number(action.payload?.unreadCount ?? 0));
+      if (!chatId) return state;
+
+      return {
+        ...state,
+        chats: state.chats.map((item) =>
+          getChatSerializedId(item) === chatId
+            ? { ...item, unreadCount: nextUnread, unread: nextUnread }
+            : item
+        ),
+        chat:
+          state.chat && getChatSerializedId(state.chat) === chatId
+            ? { ...state.chat, unreadCount: nextUnread, unread: nextUnread }
             : state.chat,
       };
     }

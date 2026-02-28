@@ -1,7 +1,7 @@
 import styled from "styled-components";
 const Wrapper = styled.div`
-  padding: 0 63px;
-  margin-bottom: 10px;
+  padding: 0 64px;
+  margin-bottom: 6px;
 
   .message-conatainer {
     margin-bottom: 0;
@@ -40,7 +40,7 @@ const Wrapper = styled.div`
     }
 
   .inner {
-  max-width: 72%;
+      max-width: min(72%, 680px);
       position: relative;
       z-index: 200;
       display: flex;
@@ -95,9 +95,14 @@ const Wrapper = styled.div`
           position: relative;
           overflow-wrap: break-word;
           white-space: pre-wrap;
-          font-size: 16px;
-          line-height: 1.4;
-          font-family: sans-serif, Helvetica;
+          font-size: 14.2px;
+          line-height: 1.45;
+          color: var(--message-primary);
+          font-family: Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif;
+
+          p {
+            margin: 0;
+          }
         }
 
         .meta {
@@ -112,7 +117,7 @@ const Wrapper = styled.div`
           margin-inline-start: 10px;
           font-size: 11px;
           opacity: 0.85;
-          color: rgba(255,255,255,0.9);
+          color: var(--message-secondary);
         }
 
         .ticks {
@@ -120,7 +125,7 @@ const Wrapper = styled.div`
           margin-inline-start: 6px;
           width: 18px;
           height: 18px;
-          color: rgba(255,255,255,0.9);
+          color: var(--message-secondary);
         }
       }
     }
@@ -133,13 +138,13 @@ const Wrapper = styled.div`
         left: unset;
         color: var(--outgoing-background) !important;
       }
-      .message {
+        .message {
         border-top-left-radius: 7.5px !important;
         border-top-right-radius: 0 !important;
         background-color: var(--outgoing-background) !important;
         box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13) !important;
-        .time { color: rgba(255,255,255,0.9); }
-        .ticks { color: rgba(255,255,255,0.9); }
+        .time { color: var(--message-secondary); }
+        .ticks { color: var(--message-secondary); }
       }
     }
   }
