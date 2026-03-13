@@ -32,6 +32,15 @@ const PlateType = {
   sticker: 3,
 };
 
+const getMessageMoment = (message) => moment((message?.timestamp || 0) * 1000);
+
+const getDayDividerLabel = (message) => {
+  const date = getMessageMoment(message);
+  if (date.isSame(moment(), "day")) return "היום";
+  if (date.isSame(moment().subtract(1, "day"), "day")) return "אתמול";
+  return date.format("DD/MM/YYYY");
+};
+
 const initialState = {
   moreMenuAnchor: null,
   loading: true,
@@ -66,6 +75,7 @@ const ChatBox = () => {
   const [state, setState] = useState(initialState);
   const [unreadAnchorId, setUnreadAnchorId] = useState(null);
   const [inputText, setInputText] = useState("");
+  const [floatingDayLabel, setFloatingDayLabel] = useState("");
   const messageListRef = useRef(null);
   const unreadMarkerRef = useRef(null);
   const textareaRef = useRef(null);
@@ -203,6 +213,36 @@ const ChatBox = () => {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId]);
+
+  useEffect(() => {
+    const container = messageListRef.current;
+    if (!container) return;
+
+    const updateFloatingDay = () => {
+      const dayDividers = container.querySelectorAll("[data-day-label]");
+      if (!dayDividers.length) {
+        setFloatingDayLabel("");
+        return;
+      }
+
+      const currentTop = container.scrollTop + 24;
+      let nextLabel = dayDividers[0].getAttribute("data-day-label") || "";
+
+      dayDividers.forEach((divider) => {
+        if (divider.offsetTop <= currentTop) {
+          nextLabel = divider.getAttribute("data-day-label") || nextLabel;
+        }
+      });
+
+      setFloatingDayLabel(nextLabel);
+    };
+
+    updateFloatingDay();
+    container.addEventListener("scroll", updateFloatingDay, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", updateFloatingDay);
+    };
+  }, [state.messages]);
 
   useEffect(() => {
     if (observerRef.current) {
@@ -360,6 +400,11 @@ const ChatBox = () => {
         release={releaseMoreMenuAnchor}
       />
       <main ref={messageListRef} className={state.loading ? "loading" : ""}>
+        {floatingDayLabel && (
+          <div className="floating-day-indicator">
+            <span>{floatingDayLabel}</span>
+          </div>
+        )}
         {state.loading ? (
           <div className="loader-wrapper">
             <AnimatedLoader />
@@ -369,6 +414,13 @@ const ChatBox = () => {
             const messageId = extractMessageId(msg) || `msg-${index}`;
             const isUnreadAnchor =
               unreadAnchorId && messageId === unreadAnchorId;
+            const previousMessage = index > 0 ? state.messages[index - 1] : null;
+            const showDayDivider =
+              !previousMessage ||
+              !getMessageMoment(previousMessage).isSame(
+                getMessageMoment(msg),
+                "day"
+              );
 
             return (
               <div
@@ -376,6 +428,11 @@ const ChatBox = () => {
                 data-message-id={messageId}
                 ref={(node) => attachMessageNode(messageId, node)}
               >
+                {showDayDivider && (
+                  <div className="day-divider" data-day-label={getDayDividerLabel(msg)}>
+                    <span>{getDayDividerLabel(msg)}</span>
+                  </div>
+                )}
                 {unreadAnchorId && isUnreadAnchor && (
                   <div className="unread-divider" ref={unreadMarkerRef}>
                     <span>הודעות שלא נקראו</span>

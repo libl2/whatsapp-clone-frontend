@@ -5,7 +5,7 @@ const Wrapper = styled.div`
 
   .message-conatainer {
     margin-bottom: 0;
-    border-radius: 8px;
+    border-radius: 7.5px;
     position: relative;
     flex: none;
     font-size: 15px;
@@ -32,7 +32,7 @@ const Wrapper = styled.div`
       left: -8px;
       color: var(--incoming-background);
       position: absolute;
-      top: -2px;
+      top: 0;
       z-index: 100;
       display: block;
       width: 8px;
@@ -40,54 +40,64 @@ const Wrapper = styled.div`
     }
 
   .inner {
-      max-width: min(72%, 680px);
+      max-width: min(65%, 680px);
       position: relative;
       z-index: 200;
       display: flex;
 
       .sender {
         display: flex;
-        font-size: 12px;
+        font-size: 12.8px;
         font-weight: bold;
         margin-bottom: 4px;
+        color: var(--teal-lighter);
       }
 
         .message {
         background-color: var(--incoming-background);
         box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.08);
-        border-radius: 8px;
+        border-radius: 7.5px;
         border-top-left-radius: 0 !important;
-        padding-left: 12px;
-        padding-right: 12px;
-        padding-bottom: 8px;
-        padding-top: 8px;
+        padding: 6px 7px 8px 9px;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
+        width: fit-content;
+
+        &.has-media {
+          padding: 3px;
+
+          .text {
+            padding: 6px 7px 0 9px;
+          }
+
+          .meta {
+            padding: 1px 7px 2px 9px;
+            margin-top: 2px;
+          }
+        }
 
         .media {
-          width: 100%;
-          margin-bottom: 8px;
+          width: min(100%, 336px);
+          margin-bottom: 0;
         }
         .media img {
           display: block;
-          max-width: 420px;
+          max-width: 336px;
           width: 100%;
           max-height: 420px;
-          border-radius: 12px;
+          border-radius: 6px;
           object-fit: cover;
-          margin-bottom: 8px;
           background: #eee;
         }
         .media video {
           display: block;
-          max-width: 420px;
+          max-width: 336px;
           width: 100%;
           height: auto;
           aspect-ratio: 16/9;
-          border-radius: 12px;
-          margin-bottom: 8px;
+          border-radius: 6px;
           background: #000;
         }
         .text {
@@ -95,13 +105,22 @@ const Wrapper = styled.div`
           position: relative;
           overflow-wrap: break-word;
           white-space: pre-wrap;
-          font-size: 14.2px;
-          line-height: 1.45;
+          font-size: 15px;
+          line-height: 20px;
           color: var(--message-primary);
           font-family: Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif;
+          max-width: 100%;
 
           p {
             margin: 0;
+          }
+
+          a {
+            color: #53bdeb;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            cursor: pointer;
+            word-break: break-all;
           }
         }
 
@@ -109,22 +128,23 @@ const Wrapper = styled.div`
           display: flex;
           align-items: center;
           justify-content: flex-end;
-          margin-top: 6px;
+          margin-top: 4px;
+          align-self: flex-end;
         }
 
         .time {
           display: inline-flex;
-          margin-inline-start: 10px;
+          margin-inline-start: 8px;
           font-size: 11px;
-          opacity: 0.85;
+          opacity: 0.72;
           color: var(--message-secondary);
         }
 
         .ticks {
           display: inline-flex;
-          margin-inline-start: 6px;
-          width: 18px;
-          height: 18px;
+          margin-inline-start: 4px;
+          width: 16px;
+          height: 16px;
           color: var(--message-secondary);
         }
       }

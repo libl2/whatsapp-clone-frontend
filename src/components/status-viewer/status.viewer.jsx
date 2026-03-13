@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchStatuses } from "../../services/api.service";
 import { getDocumentDirection } from "../../utils/direction";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { toMarkdownWithLinks } from "../../utils/linkify";
 
 const READ_STATUS_STORAGE_KEY = "readStatusIds";
 
@@ -40,6 +43,13 @@ const StatusViewer = ({ onClose }) => {
   };
 
   const getAvatar = (status) => status.contactAvatar || status.avatarUrl || null;
+
+  const getFirstUnreadIndex = (contactId, grouped = groupedStatuses, reads = readStatusIds) => {
+    const statuses = grouped[contactId]?.statuses || [];
+    const readSet = new Set(reads[contactId] || []);
+    const idx = statuses.findIndex((s) => !readSet.has(s._uniqueId));
+    return idx !== -1 ? idx : 0;
+  };
 
   useEffect(() => {
     fetchStatuses().then((res) => {
@@ -108,13 +118,11 @@ const StatusViewer = ({ onClose }) => {
 
   useEffect(() => {
     if (!selectedContact || !groupedStatuses[selectedContact]) return;
-
-    const statuses = groupedStatuses[selectedContact].statuses;
-    const firstUnreadIdx = statuses.findIndex(
-      (s) => !(readStatusIds[selectedContact] || []).includes(s._uniqueId)
-    );
-    setCurrentIndex(firstUnreadIdx !== -1 ? firstUnreadIdx : 0);
-  }, [selectedContact, groupedStatuses, readStatusIds]);
+    const total = groupedStatuses[selectedContact].statuses.length;
+    if (currentIndex >= total) {
+      setCurrentIndex(Math.max(0, total - 1));
+    }
+  }, [selectedContact, groupedStatuses, currentIndex]);
 
   useEffect(() => {
     if (!selectedContact || !groupedStatuses[selectedContact]) return;
@@ -226,6 +234,30 @@ const StatusViewer = ({ onClose }) => {
   const renderStatusContent = (status) => {
     if (!status) return null;
 
+    const statusBodyMarkdown = toMarkdownWithLinks(status.body || "");
+    const statusTextStyle = {
+      marginTop: 12,
+      fontSize: 16,
+      lineHeight: 1.5,
+      textAlign: "center",
+      maxWidth: "min(90vw, 620px)",
+      wordBreak: "break-word",
+    };
+
+    const markdownComponents = {
+      p: ({ children }) => <p style={statusTextStyle}>{children}</p>,
+      a: ({ children, ...props }) => (
+        <a
+          {...props}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#53bdeb", textDecoration: "underline" }}
+        >
+          {children}
+        </a>
+      ),
+    };
+
     if (status.mediaUrl) {
       if (status.type === "image") {
         return (
@@ -240,7 +272,12 @@ const StatusViewer = ({ onClose }) => {
                 objectFit: "contain",
               }}
             />
-            <p>{status.body}</p>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents}
+            >
+              {statusBodyMarkdown}
+            </ReactMarkdown>
           </div>
         );
       }
@@ -254,7 +291,12 @@ const StatusViewer = ({ onClose }) => {
               onEnded={handleNext}
               style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: 8 }}
             />
-            <p>{status.body}</p>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents}
+            >
+              {statusBodyMarkdown}
+            </ReactMarkdown>
           </div>
         );
       }
@@ -272,7 +314,12 @@ const StatusViewer = ({ onClose }) => {
           maxWidth: "500px",
         }}
       >
-        {status.body}
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={markdownComponents}
+        >
+          {statusBodyMarkdown}
+        </ReactMarkdown>
       </div>
     );
   };
@@ -392,8 +439,9 @@ const StatusViewer = ({ onClose }) => {
                       selectedContact === contactId ? "4px solid #00a884" : "none",
                   }}
                   onClick={() => {
+                    const firstUnreadIdx = getFirstUnreadIndex(contactId);
+                    setCurrentIndex(firstUnreadIdx);
                     setSelectedContact(contactId);
-                    setCurrentIndex(0);
                   }}
                 >
                   <img
@@ -466,9 +514,11 @@ const StatusViewer = ({ onClose }) => {
 
             {renderHeader()}
             {renderProgressBars()}
-            {renderStatusContent(
-              groupedStatuses[selectedContact].statuses[currentIndex]
-            )}
+            <div style={{ position: "relative", zIndex: 6 }}>
+              {renderStatusContent(
+                groupedStatuses[selectedContact].statuses[currentIndex]
+              )}
+            </div>
 
             <div
               onClick={handleNext}
@@ -477,8 +527,8 @@ const StatusViewer = ({ onClose }) => {
                 right: 0,
                 top: 0,
                 bottom: 0,
-                width: "50%",
-                zIndex: 2,
+                width: "28%",
+                zIndex: 3,
                 cursor: "pointer",
               }}
             ></div>
@@ -489,8 +539,8 @@ const StatusViewer = ({ onClose }) => {
                 left: 0,
                 top: 0,
                 bottom: 0,
-                width: "50%",
-                zIndex: 2,
+                width: "28%",
+                zIndex: 3,
                 cursor: "pointer",
               }}
             ></div>

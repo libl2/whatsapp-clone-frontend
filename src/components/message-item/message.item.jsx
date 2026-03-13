@@ -4,14 +4,45 @@ import TicksIcon from "../icons/ticks.icon";
 import moment from "moment";
 import { socket } from "../../services/socket.service";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useState, useEffect } from "react";
+import { toMarkdownWithLinks } from "../../utils/linkify";
+
+const formatSenderName = (msg) => {
+  const rawSender =
+    msg?._data?.sender?.pushname ||
+    msg?._data?.sender?.name ||
+    msg?.notifyName ||
+    msg?._data?.notifyName ||
+    msg?.author ||
+    msg?._data?.author ||
+    msg?.from;
+
+  if (!rawSender) return "";
+
+  const normalized = String(rawSender).trim();
+  if (!normalized) return "";
+
+  if (!normalized.includes("@")) {
+    return normalized;
+  }
+
+  const jidUser = normalized.split("@")[0];
+  const digits = jidUser.replace(/[^\d]/g, "");
+  if (digits.length >= 7) {
+    return `+${digits}`;
+  }
+
+  return jidUser;
+};
 
 const MessageItem = ({ msg, chat }) => {
   const [mediaUrl, setMediaUrl] = useState(msg.mediaUrl);
   const classes = ["message-conatainer", msg.fromMe ? "me" : ""];
   const time = moment((msg.timestamp || 0) * 1000).format("HH:mm");
   const messageSerializedId = msg?.id?._serialized || msg?.id?.id || msg?.id;
-  const showSender = Boolean(chat?.isGroup && !msg.fromMe);
+  const senderName = formatSenderName(msg);
+  const showSender = Boolean(chat?.isGroup && !msg.fromMe && senderName);
 
   useEffect(() => {
     if (!msg.hasMedia || !messageSerializedId) return;
@@ -35,8 +66,8 @@ const MessageItem = ({ msg, chat }) => {
           <TailinIcon me={msg.fromMe} />
         </span>
         <div className="inner">
-          <div className="message">
-            {showSender && <div className="sender">{msg.from}</div>}
+          <div className={`message ${msg.hasMedia ? "has-media" : ""}`}>
+            {showSender && <div className="sender">{senderName}</div>}
             {msg.hasMedia && (
               <div className="media">
                 {!mediaUrl && (
@@ -78,7 +109,18 @@ const MessageItem = ({ msg, chat }) => {
               </div>
             )}
             <div className="text">
-              <ReactMarkdown>{msg.body}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ node, children, ...props }) => (
+                    <a {...props} target="_blank" rel="noopener noreferrer">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {toMarkdownWithLinks(msg.body || "")}
+              </ReactMarkdown>
             </div>
             <div className="meta">
               <div className="time">{time}</div>

@@ -112,6 +112,41 @@ const Wrapper = styled.div`
       }
     }
 
+    .day-divider {
+      display: flex;
+      justify-content: center;
+      margin: 8px 0 10px;
+      pointer-events: none;
+      span {
+        background: rgba(var(--gray-900-rgb), 0.85);
+        color: var(--primary);
+        font-size: 12.5px;
+        line-height: 20px;
+        border-radius: 7.5px;
+        padding: 2px 10px;
+        box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.13);
+      }
+    }
+
+    .floating-day-indicator {
+      position: sticky;
+      top: 8px;
+      z-index: 35;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      margin-bottom: 6px;
+      span {
+        background: rgba(var(--gray-900-rgb), 0.95);
+        color: var(--primary);
+        font-size: 12.5px;
+        line-height: 20px;
+        border-radius: 7.5px;
+        padding: 2px 10px;
+        box-shadow: 0 1px 0.5px rgba(var(--shadow-rgb), 0.2);
+      }
+    }
+
     .unread-divider {
       display: flex;
       align-items: center;
