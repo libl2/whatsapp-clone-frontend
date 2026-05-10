@@ -156,15 +156,12 @@ const reducer = (state, action) => {
       if (!chatId) return state;
       if (chatId === "status@broadcast") return state; // statuses belong to status viewer, not chat list
 
-      const isCurrentChat =
-        state.chat && getChatSerializedId(state.chat) === chatId;
-
       const mapChat = (chat) => {
         const serializedId = getChatSerializedId(chat);
         if (serializedId !== chatId) return chat;
 
         const unreadBase = chat.unreadCount ?? chat.unread ?? 0;
-        const unreadCount = isCurrentChat ? 0 : unreadBase + 1;
+        const unreadCount = unreadBase + 1;
 
         return {
           ...chat,
@@ -195,8 +192,8 @@ const reducer = (state, action) => {
                 "",
             }),
             timestamp: message.timestamp || Date.now() / 1000,
-            unreadCount: isCurrentChat ? 0 : 1,
-            unread: isCurrentChat ? 0 : 1,
+            unreadCount: 1,
+            unread: 1,
             lastMessage: { text: message.body || "" },
           };
 
@@ -208,7 +205,10 @@ const reducer = (state, action) => {
       return {
         ...state,
         chats: [updatedChat, ...filteredChats],
-        chat: isCurrentChat ? { ...state.chat, ...updatedChat } : state.chat,
+        chat:
+          state.chat && getChatSerializedId(state.chat) === chatId
+            ? { ...state.chat, ...updatedChat }
+            : state.chat,
       };
     }
     case CHAT_MARKED_AS_READ: {

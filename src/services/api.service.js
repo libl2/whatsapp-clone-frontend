@@ -12,6 +12,11 @@ const fetchChats = () => {
   return axios.get(url);
 };
 
+const fetchChat = (id) => {
+  const url = `${apiPrefix}/chat/${id}`;
+  return axios.get(url);
+};
+
 const fetchMessages = (id) => {
   const url = `${apiPrefix}/chat/${id}/messages`;
   return axios.post(url, {
@@ -48,6 +53,7 @@ const markChatAsRead = (id) => {
 export {
   fetchQR,
   fetchChats,
+  fetchChat,
   fetchMessages,
   searchMessages,
   fetchAvatarUrl,

@@ -36,6 +36,31 @@ const formatSenderName = (msg) => {
   return jidUser;
 };
 
+const getQuotedPreview = (quotedMessage) => {
+  if (!quotedMessage) return "";
+  if (quotedMessage.body && String(quotedMessage.body).trim()) {
+    return String(quotedMessage.body).trim();
+  }
+  if (quotedMessage.hasMedia) {
+    switch (quotedMessage.type) {
+      case "image":
+        return "Photo";
+      case "video":
+        return "Video";
+      case "audio":
+      case "ptt":
+        return "Audio";
+      case "document":
+        return "Document";
+      case "sticker":
+        return "Sticker";
+      default:
+        return "Media";
+    }
+  }
+  return "";
+};
+
 const MessageItem = ({ msg, chat }) => {
   const [mediaUrl, setMediaUrl] = useState(msg.mediaUrl);
   const classes = ["message-conatainer", msg.fromMe ? "me" : ""];
@@ -43,6 +68,8 @@ const MessageItem = ({ msg, chat }) => {
   const messageSerializedId = msg?.id?._serialized || msg?.id?.id || msg?.id;
   const senderName = formatSenderName(msg);
   const showSender = Boolean(chat?.isGroup && !msg.fromMe && senderName);
+  const quotedSenderName = formatSenderName(msg.quotedMessage);
+  const quotedPreview = getQuotedPreview(msg.quotedMessage);
 
   useEffect(() => {
     if (!msg.hasMedia || !messageSerializedId) return;
@@ -68,6 +95,14 @@ const MessageItem = ({ msg, chat }) => {
         <div className="inner">
           <div className={`message ${msg.hasMedia ? "has-media" : ""}`}>
             {showSender && <div className="sender">{senderName}</div>}
+            {msg.quotedMessage && (
+              <div className={`quoted-message ${msg.fromMe ? "me" : ""}`}>
+                <div className="quoted-author">
+                  {msg.quotedMessage.fromMe ? "You" : quotedSenderName || "Reply"}
+                </div>
+                {quotedPreview && <div className="quoted-text">{quotedPreview}</div>}
+              </div>
+            )}
             {msg.hasMedia && (
               <div className="media">
                 {!mediaUrl && (

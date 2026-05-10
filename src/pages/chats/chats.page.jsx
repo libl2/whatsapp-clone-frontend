@@ -38,9 +38,31 @@ const ChatsPage = () => {
       return;
     }
 
-    fetchChats().then((res) => {
-      chatsLoaded({ chats: res.data });
-    });
+    let cancelled = false;
+
+    const refreshChats = () => {
+      fetchChats().then((res) => {
+        if (cancelled) return;
+        chatsLoaded({ chats: res.data });
+      });
+    };
+
+    refreshChats();
+    const intervalId = setInterval(refreshChats, 10000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshChats();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [user, navigate]);
 
   if (loading) {

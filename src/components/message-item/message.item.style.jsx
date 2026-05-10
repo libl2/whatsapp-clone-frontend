@@ -65,6 +65,42 @@ const Wrapper = styled.div`
         align-items: flex-start;
         width: fit-content;
 
+        .quoted-message {
+          width: 100%;
+          min-width: 180px;
+          max-width: 100%;
+          box-sizing: border-box;
+          margin-bottom: 6px;
+          padding: 7px 9px;
+          border-radius: 7px;
+          border-inline-start: 4px solid #06cf9c;
+          background: rgba(17, 27, 33, 0.06);
+        }
+
+        .quoted-message.me {
+          background: rgba(17, 27, 33, 0.08);
+        }
+
+        .quoted-author {
+          font-size: 12px;
+          line-height: 16px;
+          font-weight: 700;
+          color: #0a7c66;
+          margin-bottom: 2px;
+        }
+
+        .quoted-text {
+          font-size: 13px;
+          line-height: 18px;
+          color: var(--message-secondary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          word-break: break-word;
+        }
+
         &.has-media {
           padding: 3px;
 
