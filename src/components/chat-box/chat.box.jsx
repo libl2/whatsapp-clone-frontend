@@ -21,7 +21,11 @@ import {
 import { fetchChat, fetchMessages, markChatAsRead } from "../../services/api.service";
 import { socket } from "../../services/socket.service";
 import moment from "moment";
-import { getChatDisplayName, getChatSerializedId } from "../../utils/chat";
+import {
+  getChatDisplayName,
+  getChatSerializedId,
+  getDisplayNameFromId,
+} from "../../utils/chat";
 
 const PlateType = {
   none: 0,
@@ -73,7 +77,7 @@ const ChatBox = () => {
     message?.fromMe ? message?.to : message?.from;
 
   const chatId = getChatSerializedId(chat);
-  const title = getChatDisplayName(chat);
+  const title = getChatDisplayName(chat) || getDisplayNameFromId(chat?.id) || "שיחה לא ידועה";
   const currentUnreadCount = getUnreadCount(chat);
 
   const syncUnreadCountFromServer = (nextCount) => {

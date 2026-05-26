@@ -11,6 +11,10 @@ export const getChatSerializedId = (chat) => {
 
 export const getDisplayNameFromId = (id) => {
   if (!id) return "Unknown contact";
+  if (typeof id === "object") {
+    if (id.user && id.server) return `${id.user}@${id.server}`;
+    if (id._serialized) return id._serialized;
+  }
   return String(id).replace(/@(c\.us|s\.whatsapp\.net|g\.us)$/, "");
 };
 
@@ -25,6 +29,7 @@ export const getChatDisplayName = (chat) => {
     chat?.contact?.number,
     chat?.notifyName,
     chat?.pushname,
+    chat?.id?.user && chat.id.server ? `${chat.id.user}@${chat.id.server}` : null,
   ];
 
   const resolved = candidates.find(

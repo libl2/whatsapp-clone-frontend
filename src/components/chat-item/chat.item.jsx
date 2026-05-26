@@ -13,7 +13,7 @@ const ChatItem = ({ chat, current, onPick }) => {
     return moment(date).format(format);
   }, [chat.timestamp]);
 
-  const title = getChatDisplayName(chat);
+  const title = getChatDisplayName(chat) || "שיחה לא ידועה";
   const unreadCount = chat.unreadCount ?? chat.unread ?? 0;
   const showOutgoingTicks = Boolean(chat?.lastMessage?.fromMe);
 
