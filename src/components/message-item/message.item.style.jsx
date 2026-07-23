@@ -26,7 +26,14 @@ const Wrapper = styled.div`
     color: #888;
     font-size: 16px;
     margin-bottom: 6px;
+    text-align: center;
+    padding: 0 12px;
   }
+
+    .media-placeholder.media-failed {
+      background-color: #f8e5e5;
+      color: #a33;
+    }
 
     .tail-in {
       left: -8px;

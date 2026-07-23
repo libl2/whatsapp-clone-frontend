@@ -63,6 +63,7 @@ const getQuotedPreview = (quotedMessage) => {
 
 const MessageItem = ({ msg, chat }) => {
   const [mediaUrl, setMediaUrl] = useState(msg.mediaUrl);
+  const [mediaFailed, setMediaFailed] = useState(false);
   const classes = ["message-conatainer", msg.fromMe ? "me" : ""];
   const time = moment((msg.timestamp || 0) * 1000).format("HH:mm");
   const messageSerializedId = msg?.id?._serialized || msg?.id?.id || msg?.id;
@@ -80,9 +81,17 @@ const MessageItem = ({ msg, chat }) => {
       }
     };
 
+    const handleMediaError = (data) => {
+      if (data.messageId === messageSerializedId) {
+        setMediaFailed(true);
+      }
+    };
+
     socket.on("media-ready", handleMediaReady);
+    socket.on("media-error", handleMediaError);
     return () => {
       socket.off("media-ready", handleMediaReady);
+      socket.off("media-error", handleMediaError);
     };
   }, [msg.hasMedia, messageSerializedId]);
 
@@ -105,8 +114,11 @@ const MessageItem = ({ msg, chat }) => {
             )}
             {msg.hasMedia && (
               <div className="media">
-                {!mediaUrl && (
+                {!mediaUrl && !mediaFailed && (
                   <div className="media-placeholder">טוען מדיה...</div>
+                )}
+                {!mediaUrl && mediaFailed && (
+                  <div className="media-placeholder media-failed">לא ניתן לטעון את המדיה כרגע. נסה לפתוח את הצ'אט מחדש.</div>
                 )}
                 {msg.type === "image" && mediaUrl && <img src={mediaUrl} alt="Media" />}
                 {msg.type === "video" && mediaUrl && (
